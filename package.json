@@ -1,23 +1,25 @@
 {
   "name": "better-auth-vetto",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Better Auth plugin: block disposable sign-up emails offline (CC0 list), let privacy relays through, optional dead-domain (MX) check, and a Gmail canonical-email helper.",
   "type": "module",
-  "main": "./src/index.js",
-  "types": "./src/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "files": [
-    "src",
+    "dist",
     "LICENSE",
     "README.md"
   ],
   "scripts": {
-    "test": "node --test",
+    "build": "tsc",
+    "test": "tsc && node --test",
+    "prepublishOnly": "npm run build",
     "update-domains": "node scripts/update-domains.mjs"
   },
   "peerDependencies": {
@@ -42,6 +44,8 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "better-auth": "^1.7.10"
+    "@types/node": "^22.20.5",
+    "better-auth": "^1.7.10",
+    "typescript": "^5.9.3"
   }
 }
