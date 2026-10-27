@@ -1,7 +1,7 @@
 // Privacy-relay domains: they forward to an inbox the user reads, so they are
 // let through even when a blocklist contains them.
 // Same list as github.com/yasaiiko/disposable-list-audit (relays.json).
-export const RELAYS = new Set([
+export const RELAYS: ReadonlySet<string> = new Set([
   'privaterelay.appleid.com', // Apple Hide My Email
   'duck.com', // DuckDuckGo Email Protection
   'mozmail.com', // Firefox Relay
