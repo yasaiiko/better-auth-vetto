@@ -7,6 +7,8 @@ A [Better Auth](https://www.better-auth.com) plugin that rejects disposable sign
 - **Dead domains (optional):** `checkMx: true` rejects domains that can't receive mail (NXDOMAIN, null MX, or no MX and no A/AAAA). DNS errors and timeouts let the signup through.
 - **Gmail alias key:** `canonicalEmail()` folds `j.a.n.e+trial7@googlemail.com` to `jane@gmail.com`, so you can store a uniqueness key. Dots are only stripped for Gmail.
 
+Step-by-step guide with the full setup: [Block disposable emails in Better Auth](https://usevetto.com/block-disposable-emails-better-auth).
+
 ## Install
 
 ```sh
