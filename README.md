@@ -53,6 +53,12 @@ Helpers, usable without the plugin: `checkEmail(email, options)` → `'ok' | 'di
 - It doesn't catch typos (`jane@gmial.com`), the same person's 7th Gmail alias across accounts (store `canonicalEmail()` with a unique index for that), bots or signup bursts. Those need the form and a shared history, which is what the hosted [Vetto](https://usevetto.com) script does. This plugin works on its own and doesn't depend on it.
 - A list is never complete. Add domains you see with `block`, and update the package to get the latest list.
 
+## Used by
+
+- [dartcade](https://github.com/W3D3/dartcade): sign-up and email change ([PR #423](https://github.com/W3D3/dartcade/pull/423)).
+
+Using it? Open a PR to add your project.
+
 ## Update the list
 
 ```sh
