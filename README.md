@@ -1,13 +1,34 @@
-# better-auth-vetto
+<div align="center">
 
-A [Better Auth](https://www.better-auth.com) plugin that rejects disposable sign-up emails **without any API call**, and doesn't punish privacy-conscious users.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/yasaiiko/better-auth-vetto/main/.github/banner-dark.svg">
+  <img src="https://raw.githubusercontent.com/yasaiiko/better-auth-vetto/main/.github/banner-light.svg" width="100%" alt="better-auth-vetto: block disposable sign-ups in Better Auth, offline">
+</picture>
 
-- **Offline blocklist:** ~9,900 disposable domains from the CC0 [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) project, bundled. Subdomains match too (`x.mailinator.com`).
-- **Privacy relays allowed:** Apple Hide My Email, DuckDuckGo, Firefox Relay, SimpleLogin, Proton Pass, addy.io and 33mail forward to an inbox the user reads, so they're let through even if you add a bigger blocklist. Some popular lists block them; see [the audit](https://github.com/yasaiiko/disposable-list-audit).
-- **Dead domains (optional):** `checkMx: true` rejects domains that can't receive mail (NXDOMAIN, null MX, or no MX and no A/AAAA). DNS errors and timeouts let the signup through.
-- **Gmail alias key:** `canonicalEmail()` folds `j.a.n.e+trial7@googlemail.com` to `jane@gmail.com`, so you can store a uniqueness key. Dots are only stripped for Gmail.
+<br>
 
-Step-by-step guide with the full setup: [Block disposable emails in Better Auth](https://usevetto.com/block-disposable-emails-better-auth).
+[![npm](https://img.shields.io/npm/v/better-auth-vetto?style=flat-square&color=4f72ff&label=npm)](https://www.npmjs.com/package/better-auth-vetto)
+[![downloads](https://img.shields.io/npm/dm/better-auth-vetto?style=flat-square&color=22d39a)](https://www.npmjs.com/package/better-auth-vetto)
+[![better-auth](https://img.shields.io/badge/better--auth-%E2%89%A51.2-0b0d14?style=flat-square)](https://www.better-auth.com)
+[![license](https://img.shields.io/badge/license-MIT-0b0d14?style=flat-square)](LICENSE)
+[![types](https://img.shields.io/badge/types-included-0b0d14?style=flat-square)](src/index.ts)
+
+**Stop throwaway inboxes at sign-up. Keep the privacy-conscious users.**
+
+[Install](#install) · [Options](#options) · [How it decides](#how-it-decides) · [Limits](#what-it-doesnt-do) · [Full guide ↗](https://usevetto.com/block-disposable-emails-better-auth)
+
+</div>
+
+---
+
+## Why
+
+| | |
+|---|---|
+| **Offline** | ~9,900 disposable domains bundled from the CC0 [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) list. No API key, no network call, subdomains included (`x.mailinator.com`). |
+| **Relay-safe** | Apple Hide My Email, DuckDuckGo, Firefox Relay, SimpleLogin, Proton Pass, addy.io and 33mail reach a real inbox, so they get through unless you `block` them yourself. [Some popular lists block them](https://github.com/yasaiiko/disposable-list-audit). |
+| **Dead domains** | Optional `checkMx` rejects domains that can't receive mail. DNS errors and timeouts let the signup through. |
+| **Alias key** | `canonicalEmail()` folds `j.a.n.e+trial7@googlemail.com` → `jane@gmail.com`, so one inbox can't farm trials. |
 
 ## Install
 
@@ -23,47 +44,85 @@ export const auth = betterAuth({
   emailAndPassword: { enabled: true },
   plugins: [
     vetto({
-      checkMx: true, // Node runtimes only; skipped where node:dns isn't available
-      allow: ['partner-company.com'],
-      block: ['some-new-throwaway.com'],
+      checkMx: true,                     // Node runtimes; skipped where node:dns is missing
+      allow: ['partner-company.com'],    // always accepted
+      block: ['some-new-throwaway.com'], // extra rejects
     }),
   ],
 });
 ```
 
-A blocked request gets a `400` with a message you can show next to the email field.
+A blocked request returns **`400`** with a message ready to show next to the email field. It runs on sign-up, change-email, magic link and email OTP, before anything is saved.
+
+## How it decides
+
+```mermaid
+flowchart LR
+  A[email] --> B{allow?}
+  B -- yes --> OK([continue])
+  B -- no --> K{block?}
+  K -- yes --> X([400 · disposable])
+  K -- no --> C{privacy relay?}
+  C -- yes --> OK
+  C -- no --> D{bundled disposable list?}
+  D -- yes --> X
+  D -- no --> E{checkMx: can receive mail?}
+  E -- no --> Y([400 · dead domain])
+  E -- yes / DNS error --> OK
+```
 
 ## Options
 
 | Option | Default | |
 |---|---|---|
-| `allow` | `[]` | Domains always accepted (checked first). |
-| `block` | `[]` | Extra domains to reject. |
-| `allowRelays` | `true` | Let privacy relays through. |
-| `checkMx` | `false` | Reject domains that can't receive mail. Fails open. |
-| `mxTimeoutMs` | `1500` | DNS timeout for `checkMx`. |
-| `paths` | sign-up, change-email, magic-link, email-otp send | Endpoints the check runs on. |
-| `message` | "Please use a permanent email address…" | Error for disposable domains. |
-| `deadMessage` | "This email domain cannot receive mail…" | Error for dead domains. |
+| `allow` | `[]` | Domains always accepted (checked first) |
+| `block` | `[]` | Extra domains to reject |
+| `allowRelays` | `true` | Let privacy relays through |
+| `checkMx` | `false` | Reject domains that can't receive mail (fails open) |
+| `mxTimeoutMs` | `1500` | DNS timeout for `checkMx` |
+| `paths` | sign-up, change-email, magic-link, email-otp send | Endpoints the check runs on |
+| `message` | "Please use a permanent email address…" | Error for disposable domains |
+| `deadMessage` | "This email domain cannot receive mail…" | Error for dead domains |
 
-Helpers, usable without the plugin: `checkEmail(email, options)` → `'ok' | 'disposable' | 'dead'`, `canonicalEmail(email)`, `emailDomain(email)`, `domainAcceptsMail(domain)`.
+<details>
+<summary><b>Helpers</b> (usable without the plugin)</summary>
+
+<br>
+
+| Function | Returns |
+|---|---|
+| `checkEmail(email, options)` | `'ok'` · `'disposable'` · `'dead'` |
+| `canonicalEmail(email)` | Uniqueness key: lowercase, no `+tag`, Gmail dots removed, googlemail → gmail |
+| `emailDomain(email)` | The domain, lowercased |
+| `domainAcceptsMail(domain)` | `true` if MX (not null MX) or A/AAAA; DNS errors count as `true` |
+
+Store `canonicalEmail()` in a column with a unique index to stop one Gmail inbox from opening many accounts. Keep the original address for sending mail.
+
+</details>
 
 ## What it doesn't do
 
-- It doesn't catch typos (`jane@gmial.com`), the same person's 7th Gmail alias across accounts (store `canonicalEmail()` with a unique index for that), bots or signup bursts. Those need the form and a shared history, which is what the hosted [Vetto](https://usevetto.com) script does. This plugin works on its own and doesn't depend on it.
-- A list is never complete. Add domains you see with `block`, and update the package to get the latest list.
-
-## Used by
-
-- [dartcade](https://github.com/W3D3/dartcade): sign-up and email change ([PR #423](https://github.com/W3D3/dartcade/pull/423)).
-
-Using it? Open a PR to add your project.
-
-## Update the list
+- **Typos** (`jane@gmial.com`), **bots** and **signup bursts** need the form and a shared history. That's what the hosted [Vetto](https://usevetto.com) script adds; this plugin works on its own and doesn't depend on it.
+- **No list is complete.** Add what you see with `block`, and update the package for the latest list:
 
 ```sh
 npm run update-domains
 ```
+
+## Used by
+
+- [dartcade](https://github.com/W3D3/dartcade): sign-up and email change ([PR #423](https://github.com/W3D3/dartcade/pull/423))
+
+Using it? Open a PR and add your project.
+
+## More from Vetto
+
+| | |
+|---|---|
+| [**disposable-list-audit**](https://github.com/yasaiiko/disposable-list-audit) | Weekly check of 7 popular blocklists for real providers and relays |
+| [**supabase-vetto-hook**](https://github.com/yasaiiko/supabase-vetto-hook) | The same protection as a Supabase Auth hook |
+| [**nextjs-vetto-example**](https://github.com/yasaiiko/nextjs-vetto-example) | Next.js form with browser + Server Action checks |
+| [**Vetto MCP server**](https://usevetto.com/mcp-server) | Check signup emails from Claude, Cursor or ChatGPT |
 
 ## License
 
